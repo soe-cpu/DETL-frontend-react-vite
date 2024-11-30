@@ -13,6 +13,7 @@ interface FormValues {
   name: string;
   email: string;
   password: string;
+  confirm_password: string;
 }
 
 const SignUpPage = () => {
@@ -22,11 +23,13 @@ const SignUpPage = () => {
     name: "",
     email: "",
     password: "",
+    confirm_password: "",
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [errorName, setErrorName] = useState("");
   const [errorEmail, setErrorEmail] = useState("");
   const [errorPassword, setErrorPassword] = useState("");
+  const [errorConfirmPassword, setErrorConfirmPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,39 +43,44 @@ const SignUpPage = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    try {
-      const url = import.meta.env.VITE_BACKEND_PORT;
-      const name = formData.name;
-      const email = formData.email;
-      const password = formData.password;
-      const response = await axios.post<AuthResponse>(`${url}auth/sign-up`, {
-        name,
-        email,
-        password,
-      });
+    if (formData.password == formData.confirm_password) {
+      try {
+        const url = import.meta.env.VITE_BACKEND_PORT;
+        const name = formData.name;
+        const email = formData.email;
+        const password = formData.password;
+        const response = await axios.post<AuthResponse>(`${url}auth/sign-up`, {
+          name,
+          email,
+          password,
+        });
 
-      if (response.data.success == false) {
-        if (response.data.validate_error_message.name) {
-          setErrorName(response.data.validate_error_message.name[0]);
+        if (response.data.success == false) {
+          if (response.data.validate_error_message.name) {
+            setErrorName(response.data.validate_error_message.name[0]);
+          }
+          if (response.data.validate_error_message.email) {
+            setErrorEmail(response.data.validate_error_message.email[0]);
+          }
+          if (response.data.validate_error_message.password) {
+            setErrorPassword(response.data.validate_error_message.password[0]);
+          }
+          if (response.data.message) {
+            setErrorMessage(response.data.message);
+          }
         }
-        if (response.data.validate_error_message.email) {
-          setErrorEmail(response.data.validate_error_message.email[0]);
+        if (response.data.status == 200) {
+          // Store token in localStorage
+          localStorage.setItem("jwtToken", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data.data));
+          navigate("/");
         }
-        if (response.data.validate_error_message.password) {
-          setErrorPassword(response.data.validate_error_message.password[0]);
-        }
-        if (response.data.message) {
-          setErrorMessage(response.data.message);
-        }
+      } catch (error) {
+        setErrorMessage("Credentials does not match!");
       }
-      if (response.data.status == 200) {
-        // Store token in localStorage
-        localStorage.setItem("jwtToken", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.data));
-        navigate("/");
-      }
-    } catch (error) {
-      setErrorMessage("Credentials does not match!");
+    } else {
+      setErrorConfirmPassword("Passwords do not match");
+      setErrorPassword("Passwords do not match");
     }
   };
 
@@ -146,6 +154,27 @@ const SignUpPage = () => {
               />
               {errorPassword ? (
                 <p className="text-red-500 text-sm">{errorPassword}</p>
+              ) : (
+                ""
+              )}
+            </div>
+            <div>
+              <Label
+                htmlFor="confirm_password"
+                className={errorConfirmPassword ? "text-red-500" : ""}
+              >
+                Confirm Password
+              </Label>
+              <Input
+                type="password"
+                name="confirm_password"
+                value={formData.confirm_password}
+                onChange={handleChange}
+                required
+                className={errorConfirmPassword ? "border-red-500" : ""}
+              />
+              {errorConfirmPassword ? (
+                <p className="text-red-500 text-sm">{errorConfirmPassword}</p>
               ) : (
                 ""
               )}
