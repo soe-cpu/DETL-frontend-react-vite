@@ -1,7 +1,4 @@
-import { category_columns } from "@/components/category/CategoryColumns";
-import { item_columns } from "@/components/item/ItemColumns";
 import Breadcrumb from "@/components/shared/Breadcrumb";
-import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,35 +6,24 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import categoryStore from "@/store/categoryStore";
 import itemStore from "@/store/itemStore";
-import { CategoryList, CategoryResponse } from "@/types/category";
-import { ItemList, ItemResponse } from "@/types/item";
+import { ItemResponse } from "@/types/item";
 import axiosInstance from "@/utils/axiosInstance";
-import React, { useEffect, useState } from "react";
+import getPaginationRange from "@/utils/getPaginationRange";
+import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router-dom";
 interface FormValues {
@@ -50,27 +36,34 @@ const ItemPage = () => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [categoryId, setCategoryId] = useState("");
-  const [limit, setLimit] = useState(16);
+  const [limit, setLimit] = useState(10);
+  const [page, setPage] = useState<number | undefined>();
   const [keyword, setKeyword] = useState("");
-
-  const { items, fetchItem } = itemStore();
-  const { categories, fetchCategory } = categoryStore();
-
-  useEffect(() => {
-    fetchCategory(100);
-    fetchItem(limit, keyword);
-  }, [fetchItem, fetchCategory, limit, keyword]);
-
-  const [formData, setFormData] = useState<FormValues>({
-    title: "",
-    description: "",
-  });
-
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("");
   const [errorDesc, setErrorDesc] = useState("");
   const [errorCategory, setErrorCategory] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [formData, setFormData] = useState<FormValues>({
+    title: "",
+    description: "",
+  });
+
+  //  Fetch
+  const { items, fetchItem } = itemStore();
+  const { categories, fetchCategory } = categoryStore();
+  
+  useEffect(() => {
+    fetchCategory(100);
+    fetchItem(limit, keyword, page);
+  }, [fetchItem, fetchCategory]);
+
+  const pagination = useMemo(() => {
+    return getPaginationRange(
+      items?.data.pagination.current_page,
+      items?.data.pagination.last_page
+    );
+  }, [items?.data.pagination.current_page, items?.data.pagination.last_page]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -137,6 +130,26 @@ const ItemPage = () => {
   const handleChangeSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setCategoryId(event.target.value); // Update the state with the selected option
     console.log(event.target.value);
+  };
+
+  //   Delete
+  const handleDelete = async (id: string) => {
+    try {
+      const url = import.meta.env.VITE_BACKEND_PORT;
+      const response = await axiosInstance.delete<ItemResponse>(
+        `${url}items/delete/${id}`
+      );
+
+      if (response.data.success == true) {
+        fetchItem(limit);
+        toast({
+          title: "Delete Item",
+          description: "Item deleted successfully!",
+        });
+      }
+    } catch (error) {
+      return null;
+    }
   };
 
   return (
@@ -265,54 +278,169 @@ const ItemPage = () => {
             />
           </div>
           <hr />
-          <DataTable columns={item_columns} data={items?.data.items ?? []} />
-          <div className="p-4">
-            <div className="flex justify-between items-center">
-              <Select
-                onValueChange={(value) => {
-                  setLimit(parseInt(value));
-                  fetchItem(limit, keyword);
-                }}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="10 Rows" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="10">10 Rows</SelectItem>
-                    <SelectItem value="20">20 Rows</SelectItem>
-                    <SelectItem value="50">50 Rows</SelectItem>
-                    <SelectItem value="100">100 Rows</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <div>
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious href="#" />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#">1</PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#" isActive>
-                        2
-                      </PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#">3</PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationNext href="#" />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
+          <div>
+            {/* Table */}
+
+            <div className="relative overflow-x-auto">
+              <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 border-b">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">
+                      No
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Title
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Description
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Created Date
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items?.data.items.map((item, index) => {
+                    return (
+                      <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <th
+                          scope="row"
+                          className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                        >
+                          {index + 1}
+                        </th>
+                        <td className="px-6 py-4">{item.title}</td>
+                        <td className="px-6 py-4">{item.description}</td>
+                        <td className="px-6 py-4">{item.created_at}</td>
+                        <td className="px-6 py-4">
+                          <Button className="bg-white hover:bg-white text-green-500 shadow-none">
+                            Edit
+                          </Button>
+                          |{" "}
+                          <Button
+                            onClick={() => handleDelete(item.id)}
+                            className="bg-white hover:bg-white text-red-500 shadow-none"
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+
+            <nav
+              aria-label="Page navigation example"
+              className="mt-4 flex justify-end"
+            >
+              <ul className="flex items-center -space-x-px h-8 text-sm">
+                <li>
+                  <button
+                    onClick={() => {
+                      fetchItem(
+                        limit,
+                        keyword,
+                        items!.data.pagination.current_page > 1
+                          ? items!.data.pagination.current_page - 1
+                          : undefined
+                      );
+                      setPage(
+                        items!.data.pagination.current_page > 1
+                          ? items!.data.pagination.current_page - 1
+                          : undefined
+                      );
+                    }}
+                    className="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <svg
+                      className="w-2.5 h-2.5 rtl:rotate-180"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 6 10"
+                    >
+                      <path
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 1 1 5l4 4"
+                      />
+                    </svg>
+                  </button>
+                </li>
+                {pagination.map((page, index) => {
+                  if (page > 0)
+                    return (
+                      <li key={index}>
+                        <button
+                          onClick={() => {
+                            fetchItem(limit, keyword, page);
+                            setPage(page);
+                          }}
+                          className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                        >
+                          {page}
+                        </button>
+                      </li>
+                    );
+                  else
+                    return (
+                      <li
+                        key={index}
+                        className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                      >
+                        ...
+                      </li>
+                    );
+                })}
+
+                <li>
+                  <button
+                    onClick={() => {
+                      fetchItem(
+                        limit,
+                        keyword,
+                        items!.data.pagination.current_page <
+                          items!.data.pagination.total
+                          ? items!.data.pagination.current_page + 1
+                          : undefined
+                      );
+                      setPage(
+                        items!.data.pagination.current_page <
+                          items!.data.pagination.total
+                          ? items!.data.pagination.current_page + 1
+                          : undefined
+                      );
+                    }}
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    <span className="sr-only">Next</span>
+                    <svg
+                      className="w-2.5 h-2.5 rtl:rotate-180"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 6 10"
+                    >
+                      <path
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="m1 9 4-4-4-4"
+                      />
+                    </svg>
+                  </button>
+                </li>
+              </ul>
+            </nav>
           </div>
         </div>
       </div>

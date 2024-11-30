@@ -19,7 +19,7 @@ const categoryStore = create<CategoryStore>((set) => ({
           keyword ? "&keyword=" + keyword : ""
         }${page ? "&page=" + page : ""}`
       );
-      set({ categories: response.data, loading: false });
+      set({ categories: response.data });
     } catch (err: any) {}
   },
 }));

@@ -42,6 +42,7 @@ const CategoryPage = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [limit, setLimit] = useState(10);
+  const [page, setPage] = useState<number | undefined>();
   const [keyword, setKeyword] = useState("");
   const { categories, loading, fetchCategory } = categoryStore();
 
@@ -52,6 +53,10 @@ const CategoryPage = () => {
   const [errorName, setErrorName] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    fetchCategory(limit, keyword, page);
+  }, [fetchCategory]);
+
   const pagination = useMemo(() => {
     return getPaginationRange(
       categories?.data.pagination.current_page,
@@ -61,10 +66,6 @@ const CategoryPage = () => {
     categories?.data.pagination.current_page,
     categories?.data.pagination.last_page,
   ]);
-
-  useEffect(() => {
-    fetchCategory(limit, keyword);
-  }, [fetchCategory]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -266,15 +267,20 @@ const CategoryPage = () => {
               <ul className="flex items-center -space-x-px h-8 text-sm">
                 <li>
                   <button
-                    onClick={() =>
+                    onClick={() => {
                       fetchCategory(
                         limit,
                         keyword,
                         categories!.data.pagination.current_page > 1
                           ? categories!.data.pagination.current_page - 1
                           : categories!.data.pagination.current_page
-                      )
-                    }
+                      );
+                      setPage(
+                        categories!.data.pagination.current_page > 1
+                          ? categories!.data.pagination.current_page - 1
+                          : categories!.data.pagination.current_page
+                      );
+                    }}
                     className="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                   >
                     <span className="sr-only">Previous</span>
@@ -300,7 +306,10 @@ const CategoryPage = () => {
                     return (
                       <li key={index}>
                         <button
-                          onClick={() => fetchCategory(limit, keyword, page)}
+                          onClick={() => {
+                            fetchCategory(limit, keyword, page);
+                            setPage(page);
+                          }}
                           className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                         >
                           {page}
@@ -320,7 +329,7 @@ const CategoryPage = () => {
 
                 <li>
                   <button
-                    onClick={() =>
+                    onClick={() => {
                       fetchCategory(
                         limit,
                         keyword,
@@ -328,8 +337,14 @@ const CategoryPage = () => {
                           categories!.data.pagination.total
                           ? categories!.data.pagination.current_page + 1
                           : undefined
-                      )
-                    }
+                      );
+                      setPage(
+                        categories!.data.pagination.current_page <
+                          categories!.data.pagination.total
+                          ? categories!.data.pagination.current_page + 1
+                          : undefined
+                      );
+                    }}
                     className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                   >
                     <span className="sr-only">Next</span>
