@@ -1,6 +1,5 @@
 import { category_columns } from "@/components/category/CategoryColumns";
 import Breadcrumb from "@/components/shared/Breadcrumb";
-import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,19 +7,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -29,35 +18,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { CategoryList, CategoryResponse } from "@/types/category";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast, useToast } from "@/hooks/use-toast";
+import categoryStore from "@/store/categoryStore";
+import { CategoryResponse } from "@/types/category";
 import axiosInstance from "@/utils/axiosInstance";
-import React, { useEffect, useState } from "react";
+import getPaginationRange from "@/utils/getPaginationRange";
+import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
-import { useNavigate } from "react-router-dom";
+import { data, useNavigate } from "react-router-dom";
 interface FormValues {
   name: string;
 }
 
 const CategoryPage = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [categories, setCategories] = useState<CategoryList>();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axiosInstance.get<CategoryResponse>(
-          "/categories"
-        );
-        setCategories(response.data.data);
-      } catch (err) {
-        return null;
-      }
-    };
-
-    fetchData();
-  }, [categories]);
+  const [open, setOpen] = useState(false);
+  const [limit, setLimit] = useState(10);
+  const [keyword, setKeyword] = useState("");
+  const { categories, loading, fetchCategory } = categoryStore();
 
   const [formData, setFormData] = useState<FormValues>({
     name: "",
@@ -65,6 +51,20 @@ const CategoryPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [errorName, setErrorName] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  const pagination = useMemo(() => {
+    return getPaginationRange(
+      categories?.data.pagination.current_page,
+      categories?.data.pagination.last_page
+    );
+  }, [
+    categories?.data.pagination.current_page,
+    categories?.data.pagination.last_page,
+  ]);
+
+  useEffect(() => {
+    fetchCategory(limit, keyword);
+  }, [fetchCategory]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -89,18 +89,21 @@ const CategoryPage = () => {
         }
       );
 
-      if (response.data.success == false) {
+      if (response.data.status == 200) {
+        fetchCategory(limit, keyword);
+        setSubmitted(false);
+        setOpen(false);
+        setFormData({
+          name: "",
+        });
+        navigate("/categories");
+      } else {
         if (response.data.validate_error_message.name) {
           setErrorName(response.data.validate_error_message.name[0]);
         }
         if (response.data.message) {
           setErrorMessage(response.data.message);
         }
-      }
-      if (response.data.status == 200) {
-        // Store token in localStorage
-        setSubmitted(false);
-        navigate("/categories");
       }
     } catch (error) {
       setErrorMessage("Something went wrong!");
@@ -116,15 +119,17 @@ const CategoryPage = () => {
       );
 
       if (response.data.success == true) {
+        fetchCategory(limit);
         toast({
           title: "Delete Category",
           description: "Category deleted successfully!",
         });
       }
     } catch (error) {
-      setErrorMessage("Something went wrong!");
+      return null;
     }
   };
+
   return (
     <div>
       <Helmet>
@@ -134,10 +139,13 @@ const CategoryPage = () => {
       <div>
         <div className="flex justify-between items-center">
           <Breadcrumb page="Category" action="List" />
-          <Dialog>
-            <DialogTrigger className="bg-black text-white py-2 px-4 rounded">
-              Add Category
-            </DialogTrigger>
+          <Button
+            onClick={() => setOpen(true)}
+            className="bg-black text-white py-2 px-4 rounded"
+          >
+            Add Category
+          </Button>
+          <Dialog open={open} onOpenChange={() => setOpen(!open)}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create Category</DialogTitle>
@@ -184,55 +192,166 @@ const CategoryPage = () => {
         </div>
         <div>
           <div className="flex justify-end py-2">
-            <Input placeholder="Search...." className="max-w-sm" />
+            <Input
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  // Do code here
+                  e.preventDefault();
+
+                  fetchCategory(limit, keyword);
+                }
+              }}
+              placeholder="Search...."
+              className="max-w-sm"
+            />
           </div>
           <hr />
-          <DataTable
-            columns={category_columns}
-            data={categories?.categories ?? []}
-          />
-          <div className="p-4">
-            <div className="flex justify-between items-center">
-              <Select>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="10 Rows" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="10">10 Rows</SelectItem>
-                    <SelectItem value="20">20 Rows</SelectItem>
-                    <SelectItem value="50">50 Rows</SelectItem>
-                    <SelectItem value="100">100 Rows</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <div>
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious href="#" />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#">1</PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#" isActive>
-                        2
-                      </PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#">3</PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationNext href="#" />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
+          <div>
+            {/* Table */}
+
+            <div className="relative overflow-x-auto">
+              <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 border-b">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">
+                      No
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Name
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Created Date
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories?.data.categories.map((category, index) => {
+                    return (
+                      <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <th
+                          scope="row"
+                          className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                        >
+                          {index + 1}
+                        </th>
+                        <td className="px-6 py-4">{category.name}</td>
+                        <td className="px-6 py-4">{category.created_at}</td>
+                        <td className="px-6 py-4">
+                          <Button className="bg-white hover:bg-white text-green-500 shadow-none">
+                            Edit
+                          </Button>
+                          |{" "}
+                          <Button
+                            onClick={() => handleDelete(category.id)}
+                            className="bg-white hover:bg-white text-red-500 shadow-none"
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+
+            <nav
+              aria-label="Page navigation example"
+              className="mt-4 flex justify-end"
+            >
+              <ul className="flex items-center -space-x-px h-8 text-sm">
+                <li>
+                  <button
+                    onClick={() =>
+                      fetchCategory(
+                        limit,
+                        keyword,
+                        categories!.data.pagination.current_page > 1
+                          ? categories!.data.pagination.current_page - 1
+                          : categories!.data.pagination.current_page
+                      )
+                    }
+                    className="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <svg
+                      className="w-2.5 h-2.5 rtl:rotate-180"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 6 10"
+                    >
+                      <path
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 1 1 5l4 4"
+                      />
+                    </svg>
+                  </button>
+                </li>
+                {pagination.map((page, index) => {
+                  if (page > 0)
+                    return (
+                      <li key={index}>
+                        <button
+                          onClick={() => fetchCategory(limit, keyword, page)}
+                          className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                        >
+                          {page}
+                        </button>
+                      </li>
+                    );
+                  else
+                    return (
+                      <li
+                        key={index}
+                        className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                      >
+                        ...
+                      </li>
+                    );
+                })}
+
+                <li>
+                  <button
+                    onClick={() =>
+                      fetchCategory(
+                        limit,
+                        keyword,
+                        categories!.data.pagination.current_page <
+                          categories!.data.pagination.total
+                          ? categories!.data.pagination.current_page + 1
+                          : undefined
+                      )
+                    }
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    <span className="sr-only">Next</span>
+                    <svg
+                      className="w-2.5 h-2.5 rtl:rotate-180"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 6 10"
+                    >
+                      <path
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="m1 9 4-4-4-4"
+                      />
+                    </svg>
+                  </button>
+                </li>
+              </ul>
+            </nav>
           </div>
         </div>
       </div>

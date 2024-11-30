@@ -8,6 +8,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/routes/PrivateRoute";
 import SignUpPage from "./pages/auth/SignUpPage";
 import CategoryPage from "./pages/CategoryPage";
+import ItemPage from "./pages/ItemPage";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
           <Route element={<MainLayout />}>
             <Route index element={<HomePage />} />
             <Route path="categories" element={<CategoryPage />} />
+            <Route path="items" element={<ItemPage />} />
           </Route>
         </Route>
         <Route path="sign-in" element={<SignInPage />} />
