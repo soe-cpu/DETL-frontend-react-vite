@@ -29,6 +29,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 interface FormValues {
   title: string;
   description: string;
@@ -189,8 +196,11 @@ const ItemPage = () => {
   };
 
   const handleChangeSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setCategoryId(event.target.value); // Update the state with the selected option
-    console.log(event.target.value);
+    setCategoryId(event.target.value);
+  };
+
+  const handleChangeFilter = (value: string) => {
+    fetchItem(limit, keyword, page, value);
   };
 
   //   Delete
@@ -230,7 +240,21 @@ const ItemPage = () => {
           </Button>
         </div>
         <div>
-          <div className="flex justify-end py-2">
+          <div className="flex justify-between items-center py-2">
+            <Select onValueChange={handleChangeFilter}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Select an category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories?.data.categories.map((c, index) => {
+                  return (
+                    <SelectItem value={c.id} key={index}>
+                      {c.name}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
             <Input
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => {
