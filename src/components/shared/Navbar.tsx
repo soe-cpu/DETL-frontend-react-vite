@@ -14,7 +14,7 @@ const Navbar = () => {
   const signOut = () => {
     localStorage.removeItem("jwtToken");
     localStorage.removeItem("user");
-    navigate("login");
+    navigate("/sign-in");
   };
 
   return (

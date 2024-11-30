@@ -6,6 +6,7 @@ import HomePage from "./pages/HomePage";
 import SignInPage from "./pages/auth/SignInPage";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import PrivateRoute from "./components/routes/PrivateRoute";
+import SignUpPage from "./pages/auth/SignUpPage";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -16,7 +17,8 @@ createRoot(document.getElementById("root")!).render(
             <Route index element={<HomePage />} />
           </Route>
         </Route>
-        <Route path=":sign-in" element={<SignInPage />} />
+        <Route path="sign-in" element={<SignInPage />} />
+        <Route path="sign-up" element={<SignUpPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

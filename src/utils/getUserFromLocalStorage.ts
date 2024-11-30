@@ -1,4 +1,4 @@
-import { User } from "@/types/login";
+import { User } from "@/types/auth";
 
 const getUserFromLocalStorage = (key: string): User | null => {
   const storedItem = localStorage.getItem(key);

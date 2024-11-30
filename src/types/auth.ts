@@ -1,4 +1,4 @@
-export interface LoginResponse {
+export interface AuthResponse {
   success: boolean;
   token: string;
   message: string;
@@ -17,6 +17,7 @@ export interface User {
 }
 
 export interface Message {
+  name: string[];
   email: string[];
   password: string[];
 }
