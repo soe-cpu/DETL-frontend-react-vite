@@ -19,6 +19,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 interface FormValues {
   title: string;
   description: string;
@@ -29,11 +39,13 @@ const ItemPage = () => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [categoryId, setCategoryId] = useState("");
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState<number | undefined>();
   const [keyword, setKeyword] = useState("");
   const [editItem, setEditItem] = useState<Item>();
+  const [deleteItem, setDeleteItem] = useState<Item>();
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("");
   const [errorDesc, setErrorDesc] = useState("");
@@ -182,7 +194,7 @@ const ItemPage = () => {
   };
 
   //   Delete
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id?: string) => {
     try {
       const url = import.meta.env.VITE_BACKEND_PORT;
       const response = await axiosInstance.delete<ItemResponse>(
@@ -294,7 +306,10 @@ const ItemPage = () => {
                           </Button>
                           |{" "}
                           <Button
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => {
+                              setDeleteItem(item);
+                              setDeleteOpen(true);
+                            }}
                             className="bg-white hover:bg-white text-red-500 shadow-none"
                           >
                             Delete
@@ -607,6 +622,30 @@ const ItemPage = () => {
           </DialogHeader>
         </DialogContent>
       </Dialog>
+
+      {/* Delete */}
+      <AlertDialog
+        open={deleteOpen}
+        onOpenChange={() => setDeleteOpen(!deleteOpen)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              item and remove your data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(deleteItem?.id)}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

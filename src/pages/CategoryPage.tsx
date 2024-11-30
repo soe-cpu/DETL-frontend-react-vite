@@ -18,6 +18,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FormValues {
   name: string;
@@ -27,10 +37,12 @@ const CategoryPage = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState<number | undefined>();
   const [keyword, setKeyword] = useState("");
   const [editCategory, setEditCategory] = useState<Category>();
+  const [deleteCategory, setDeleteCategory] = useState<Category>();
   const { categories, loading, fetchCategory } = categoryStore();
 
   const [formData, setFormData] = useState<FormValues>({
@@ -143,7 +155,7 @@ const CategoryPage = () => {
   };
 
   //   Delete
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id?: string) => {
     try {
       const url = import.meta.env.VITE_BACKEND_PORT;
       const response = await axiosInstance.delete<CategoryResponse>(
@@ -246,7 +258,10 @@ const CategoryPage = () => {
                           </Button>
                           |{" "}
                           <Button
-                            onClick={() => handleDelete(category.id)}
+                            onClick={() => {
+                              setDeleteOpen(true);
+                              setDeleteCategory(category);
+                            }}
                             className="bg-white hover:bg-white text-red-500 shadow-none"
                           >
                             Delete
@@ -462,6 +477,32 @@ const CategoryPage = () => {
                 </DialogHeader>
               </DialogContent>
             </Dialog>
+
+            {/* Delete */}
+            <AlertDialog
+              open={deleteOpen}
+              onOpenChange={() => setDeleteOpen(!deleteOpen)}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    your account and remove your data from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeleteOpen(false)}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleDelete(deleteCategory?.id)}
+                  >
+                    Continue
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
