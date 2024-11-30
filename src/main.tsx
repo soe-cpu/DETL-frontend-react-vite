@@ -5,7 +5,7 @@ import MainLayout from "./layouts/MainLayout";
 import HomePage from "./pages/HomePage";
 import SignInPage from "./pages/auth/SignInPage";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import PrivateRoute from "./components/ui/routes/PrivateRoute";
+import PrivateRoute from "./components/routes/PrivateRoute";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
