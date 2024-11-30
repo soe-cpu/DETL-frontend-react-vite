@@ -52,7 +52,7 @@ const ItemPage = () => {
   //  Fetch
   const { items, fetchItem } = itemStore();
   const { categories, fetchCategory } = categoryStore();
-  
+
   useEffect(() => {
     fetchCategory(100);
     fetchItem(limit, keyword, page);
@@ -295,6 +295,9 @@ const ItemPage = () => {
                       Description
                     </th>
                     <th scope="col" className="px-6 py-3">
+                      Category
+                    </th>
+                    <th scope="col" className="px-6 py-3">
                       Created Date
                     </th>
                     <th scope="col" className="px-6 py-3">
@@ -314,6 +317,7 @@ const ItemPage = () => {
                         </th>
                         <td className="px-6 py-4">{item.title}</td>
                         <td className="px-6 py-4">{item.description}</td>
+                        <td className="px-6 py-4">{item.category.name}</td>
                         <td className="px-6 py-4">{item.created_at}</td>
                         <td className="px-6 py-4">
                           <Button className="bg-white hover:bg-white text-green-500 shadow-none">
