@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import categoryStore from "@/store/categoryStore";
-import { CategoryResponse } from "@/types/category";
+import { Category, CategoryResponse } from "@/types/category";
 import axiosInstance from "@/utils/axiosInstance";
 import getPaginationRange from "@/utils/getPaginationRange";
 import React, { useEffect, useMemo, useState } from "react";
@@ -26,9 +26,11 @@ interface FormValues {
 const CategoryPage = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState<number | undefined>();
   const [keyword, setKeyword] = useState("");
+  const [editCategory, setEditCategory] = useState<Category>();
   const { categories, loading, fetchCategory } = categoryStore();
 
   const [formData, setFormData] = useState<FormValues>({
@@ -77,8 +79,52 @@ const CategoryPage = () => {
 
       if (response.data.status == 200) {
         fetchCategory(limit, keyword);
+        toast({
+          title: "Category Create",
+          description: "Category created successfully!",
+        });
         setSubmitted(false);
         setOpen(false);
+        setFormData({
+          name: "",
+        });
+        navigate("/categories");
+      } else {
+        if (response.data.validate_error_message.name) {
+          setErrorName(response.data.validate_error_message.name[0]);
+        }
+        if (response.data.message) {
+          setErrorMessage(response.data.message);
+        }
+      }
+    } catch (error) {
+      setErrorMessage("Something went wrong!");
+    }
+  };
+
+  //   Update
+  const handleSubmitUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSubmitted(true);
+
+    try {
+      const url = import.meta.env.VITE_BACKEND_PORT;
+      const name = formData.name;
+      const response = await axiosInstance.post<CategoryResponse>(
+        `${url}categories/update/${editCategory.id}`,
+        {
+          name,
+        }
+      );
+
+      if (response.data.status == 200) {
+        fetchCategory(limit, keyword);
+        toast({
+          title: "Category Update",
+          description: "Category updated successfully!",
+        });
+        setSubmitted(false);
+        setEditOpen(false);
         setFormData({
           name: "",
         });
@@ -131,50 +177,6 @@ const CategoryPage = () => {
           >
             Add Category
           </Button>
-          <Dialog open={open} onOpenChange={() => setOpen(!open)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Category</DialogTitle>
-                <DialogDescription>
-                  <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col space-y-3"
-                  >
-                    <div>
-                      <Label
-                        htmlFor="name"
-                        className={errorName ? "text-red-500" : ""}
-                      >
-                        Name
-                      </Label>
-                      <Input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        required
-                        className={errorName ? "border-red-500" : ""}
-                      />
-                      {errorName ? (
-                        <p className="text-red-500 text-sm">{errorName}</p>
-                      ) : (
-                        ""
-                      )}
-                    </div>
-                    <div>
-                      <Button
-                        type="submit"
-                        disabled={submitted}
-                        className="w-full flex"
-                      >
-                        Save
-                      </Button>
-                    </div>
-                  </form>
-                </DialogDescription>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
         </div>
         <div>
           <div className="flex justify-end py-2">
@@ -217,7 +219,10 @@ const CategoryPage = () => {
                 <tbody>
                   {categories?.data.categories.map((category, index) => {
                     return (
-                      <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                      <tr
+                        className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+                        key={index}
+                      >
                         <th
                           scope="row"
                           className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
@@ -229,7 +234,14 @@ const CategoryPage = () => {
                           {moment(category.created_at).format("LLL")}
                         </td>
                         <td className="px-6 py-4">
-                          <Button className="bg-white hover:bg-white text-green-500 shadow-none">
+                          <Button
+                            onClick={() => {
+                              setEditOpen(true);
+                              setEditCategory(category);
+                              setFormData({ name: category.name });
+                            }}
+                            className="bg-white hover:bg-white text-green-500 shadow-none"
+                          >
                             Edit
                           </Button>
                           |{" "}
@@ -354,6 +366,102 @@ const CategoryPage = () => {
                 </li>
               </ul>
             </nav>
+
+            {/* Create Modal */}
+            <Dialog open={open} onOpenChange={() => setOpen(!open)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Category</DialogTitle>
+                  <DialogDescription>
+                    <form
+                      onSubmit={handleSubmit}
+                      className="flex flex-col space-y-3"
+                    >
+                      <div>
+                        <Label
+                          htmlFor="name"
+                          className={errorName ? "text-red-500" : ""}
+                        >
+                          Name
+                        </Label>
+                        <Input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                          className={errorName ? "border-red-500" : ""}
+                        />
+                        {errorName ? (
+                          <div className="text-red-500 text-sm">
+                            {errorName}
+                          </div>
+                        ) : (
+                          ""
+                        )}
+                      </div>
+                      <div>
+                        <Button
+                          type="submit"
+                          disabled={submitted}
+                          className="w-full flex"
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+
+            {/* Edit Modal */}
+            <Dialog open={editOpen} onOpenChange={() => setEditOpen(!editOpen)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Category</DialogTitle>
+                  <DialogDescription>
+                    <form
+                      onSubmit={handleSubmitUpdate}
+                      className="flex flex-col space-y-3"
+                    >
+                      <div>
+                        <Label
+                          htmlFor="name"
+                          className={errorName ? "text-red-500" : ""}
+                        >
+                          Name
+                        </Label>
+                        <Input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                          className={errorName ? "border-red-500" : ""}
+                        />
+                        {errorName ? (
+                          <div className="text-red-500 text-sm">
+                            {errorName}
+                          </div>
+                        ) : (
+                          ""
+                        )}
+                      </div>
+                      <div>
+                        <Button
+                          type="submit"
+                          disabled={submitted}
+                          className="w-full flex"
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>

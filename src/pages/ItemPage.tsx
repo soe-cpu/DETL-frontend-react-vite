@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import categoryStore from "@/store/categoryStore";
 import itemStore from "@/store/itemStore";
-import { ItemResponse } from "@/types/item";
+import { Item, ItemResponse } from "@/types/item";
 import axiosInstance from "@/utils/axiosInstance";
 import getPaginationRange from "@/utils/getPaginationRange";
 import React, { useEffect, useMemo, useState } from "react";
@@ -28,10 +28,12 @@ const ItemPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [categoryId, setCategoryId] = useState("");
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState<number | undefined>();
   const [keyword, setKeyword] = useState("");
+  const [editItem, setEditItem] = useState<Item>();
   const [errorMessage, setErrorMessage] = useState("");
   const [errorTitle, setErrorTitle] = useState("");
   const [errorDesc, setErrorDesc] = useState("");
@@ -120,6 +122,60 @@ const ItemPage = () => {
     }
   };
 
+  //   Edit
+  const handleSubmitEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSubmitted(true);
+
+    try {
+      const url = import.meta.env.VITE_BACKEND_PORT;
+      const title = formData.title;
+      const description = formData.description;
+      const category_id = categoryId;
+      const response = await axiosInstance.post<ItemResponse>(
+        `${url}items/update/${editItem?.id}`,
+        {
+          title,
+          description,
+          category_id,
+        }
+      );
+
+      if (response.data.status == 200) {
+        toast({
+          title: "Item Update",
+          description: "Item updated successfully!",
+        });
+        setFormData({
+          title: "",
+          description: "",
+        });
+
+        fetchItem(limit, keyword);
+
+        setSubmitted(false);
+        setEditOpen(false);
+        navigate("/items");
+      } else {
+        if (response.data.validate_error_message.title) {
+          setErrorTitle(response.data.validate_error_message.title[0]);
+        }
+        if (response.data.validate_error_message.description) {
+          setErrorDesc(response.data.validate_error_message.description[0]);
+        }
+        if (response.data.validate_error_message.category_id) {
+          setErrorCategory(response.data.validate_error_message.category_id[0]);
+        }
+        if (response.data.message) {
+          setErrorMessage(response.data.message);
+        }
+        setSubmitted(false);
+      }
+    } catch (error) {
+      setErrorMessage("Something went wrong!");
+    }
+  };
+
   const handleChangeSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setCategoryId(event.target.value); // Update the state with the selected option
     console.log(event.target.value);
@@ -160,99 +216,6 @@ const ItemPage = () => {
           >
             Add Item
           </Button>
-          <Dialog open={open} onOpenChange={() => setOpen(!open)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Item</DialogTitle>
-                <DialogDescription>
-                  <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col space-y-3"
-                  >
-                    <div>
-                      <Label
-                        htmlFor="name"
-                        className={errorTitle ? "text-red-500" : ""}
-                      >
-                        Title
-                      </Label>
-                      <Input
-                        type="text"
-                        name="title"
-                        value={formData.title}
-                        onChange={handleChange}
-                        required
-                        className={errorTitle ? "border-red-500" : ""}
-                      />
-                      {errorTitle ? (
-                        <p className="text-red-500 text-sm">{errorTitle}</p>
-                      ) : (
-                        ""
-                      )}
-                    </div>
-                    <div>
-                      <Label
-                        htmlFor="name"
-                        className={errorDesc ? "text-red-500" : ""}
-                      >
-                        Description
-                      </Label>
-                      <Input
-                        type="text"
-                        name="description"
-                        value={formData.description}
-                        onChange={handleChange}
-                        required
-                        className={errorDesc ? "border-red-500" : ""}
-                      />
-                      {errorDesc ? (
-                        <p className="text-red-500 text-sm">{errorDesc}</p>
-                      ) : (
-                        ""
-                      )}
-                    </div>
-                    <div>
-                      <Label
-                        htmlFor="category"
-                        className={errorCategory ? "text-red-500" : ""}
-                      >
-                        Category
-                      </Label>
-                      <select
-                        name="category_id"
-                        onChange={handleChangeSelect}
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                      >
-                        <option>Select category</option>
-                        {categories?.data.categories.map((c, index) => {
-                          return (
-                            <option value={c.id} key={index}>
-                              {c.name}
-                            </option>
-                          );
-                        })}
-                      </select>
-
-                      {errorCategory ? (
-                        <p className="text-red-500 text-sm">{errorCategory}</p>
-                      ) : (
-                        ""
-                      )}
-                    </div>
-                    <div>
-                      <Button
-                        type="submit"
-                        disabled={submitted}
-                        className="w-full flex"
-                      >
-                        Save
-                      </Button>
-                    </div>
-                  </form>
-                </DialogDescription>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
         </div>
         <div>
           <div className="flex justify-end py-2">
@@ -311,9 +274,22 @@ const ItemPage = () => {
                         <td className="px-6 py-4">{item.title}</td>
                         <td className="px-6 py-4">{item.description}</td>
                         <td className="px-6 py-4">{item.category.name}</td>
-                        <td className="px-6 py-4">{moment(item.created_at).format('LLL')}</td>
                         <td className="px-6 py-4">
-                          <Button className="bg-white hover:bg-white text-green-500 shadow-none">
+                          {moment(item.created_at).format("LLL")}
+                        </td>
+                        <td className="px-6 py-4">
+                          <Button
+                            onClick={() => {
+                              setEditOpen(true);
+                              setEditItem(item);
+                              setFormData({
+                                title: item.title,
+                                description: item.description,
+                              });
+                              setCategoryId(item.category.id);
+                            }}
+                            className="bg-white hover:bg-white text-green-500 shadow-none"
+                          >
                             Edit
                           </Button>
                           |{" "}
@@ -441,6 +417,196 @@ const ItemPage = () => {
           </div>
         </div>
       </div>
+      {/* Create */}
+      <Dialog open={open} onOpenChange={() => setOpen(!open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Item</DialogTitle>
+            <DialogDescription>
+              <form onSubmit={handleSubmit} className="flex flex-col space-y-3">
+                <div>
+                  <Label
+                    htmlFor="name"
+                    className={errorTitle ? "text-red-500" : ""}
+                  >
+                    Title
+                  </Label>
+                  <Input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    required
+                    className={errorTitle ? "border-red-500" : ""}
+                  />
+                  {errorTitle ? (
+                    <p className="text-red-500 text-sm">{errorTitle}</p>
+                  ) : (
+                    ""
+                  )}
+                </div>
+                <div>
+                  <Label
+                    htmlFor="name"
+                    className={errorDesc ? "text-red-500" : ""}
+                  >
+                    Description
+                  </Label>
+                  <Input
+                    type="text"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    required
+                    className={errorDesc ? "border-red-500" : ""}
+                  />
+                  {errorDesc ? (
+                    <p className="text-red-500 text-sm">{errorDesc}</p>
+                  ) : (
+                    ""
+                  )}
+                </div>
+                <div>
+                  <Label
+                    htmlFor="category"
+                    className={errorCategory ? "text-red-500" : ""}
+                  >
+                    Category
+                  </Label>
+                  <select
+                    name="category_id"
+                    onChange={handleChangeSelect}
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  >
+                    <option>Select category</option>
+                    {categories?.data.categories.map((c, index) => {
+                      return (
+                        <option value={c.id} key={index}>
+                          {c.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  {errorCategory ? (
+                    <p className="text-red-500 text-sm">{errorCategory}</p>
+                  ) : (
+                    ""
+                  )}
+                </div>
+                <div>
+                  <Button
+                    type="submit"
+                    disabled={submitted}
+                    className="w-full flex"
+                  >
+                    Save
+                  </Button>
+                </div>
+              </form>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit */}
+      <Dialog open={editOpen} onOpenChange={() => setEditOpen(!editOpen)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+            <DialogDescription>
+              <form
+                onSubmit={handleSubmitEdit}
+                className="flex flex-col space-y-3"
+              >
+                <div>
+                  <Label
+                    htmlFor="name"
+                    className={errorTitle ? "text-red-500" : ""}
+                  >
+                    Title
+                  </Label>
+                  <Input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    required
+                    className={errorTitle ? "border-red-500" : ""}
+                  />
+                  {errorTitle ? (
+                    <p className="text-red-500 text-sm">{errorTitle}</p>
+                  ) : (
+                    ""
+                  )}
+                </div>
+                <div>
+                  <Label
+                    htmlFor="name"
+                    className={errorDesc ? "text-red-500" : ""}
+                  >
+                    Description
+                  </Label>
+                  <Input
+                    type="text"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    required
+                    className={errorDesc ? "border-red-500" : ""}
+                  />
+                  {errorDesc ? (
+                    <p className="text-red-500 text-sm">{errorDesc}</p>
+                  ) : (
+                    ""
+                  )}
+                </div>
+                <div>
+                  <Label
+                    htmlFor="category"
+                    className={errorCategory ? "text-red-500" : ""}
+                  >
+                    Category
+                  </Label>
+                  <select
+                    name="category_id"
+                    onChange={handleChangeSelect}
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  >
+                    <option>Select category</option>
+                    {categories?.data.categories.map((c, index) => {
+                      return (
+                        <option
+                          value={c.id}
+                          key={index}
+                          selected={categoryId == c.id}
+                        >
+                          {c.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  {errorCategory ? (
+                    <p className="text-red-500 text-sm">{errorCategory}</p>
+                  ) : (
+                    ""
+                  )}
+                </div>
+                <div>
+                  <Button
+                    type="submit"
+                    disabled={submitted}
+                    className="w-full flex"
+                  >
+                    Save
+                  </Button>
+                </div>
+              </form>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,7 +1,9 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 const Sidebar = () => {
+  const location = useLocation();
+  const isActive = (path: string) => location.pathname === path;
   return (
     <aside
       id="logo-sidebar"
@@ -16,9 +18,9 @@ const Sidebar = () => {
           <li>
             <NavLink
               to={"/"}
-              className={
-                "flex items-center p-2 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700  "
-              }
+              className={`flex items-center p-2 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                isActive("/") ? "bg-gray-100" : ""
+              }`}
             >
               <svg
                 aria-hidden="true"
@@ -39,9 +41,9 @@ const Sidebar = () => {
           <li>
             <NavLink
               to={"/categories"}
-              className={
-                "flex items-center p-2 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700  "
-              }
+              className={`flex items-center p-2 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700  ${
+                isActive("/categories") ? "bg-gray-100" : ""
+              }`}
             >
               <svg
                 className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -67,9 +69,9 @@ const Sidebar = () => {
           <li>
             <NavLink
               to={"/items"}
-              className={
-                "flex items-center p-2 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700  "
-              }
+              className={`flex items-center p-2 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700  ${
+                isActive("/items") ? "bg-gray-100" : ""
+              }`}
             >
               <svg
                 className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
