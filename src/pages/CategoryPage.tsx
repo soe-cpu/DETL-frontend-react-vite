@@ -1,4 +1,3 @@
-import { category_columns } from "@/components/category/CategoryColumns";
 import Breadcrumb from "@/components/shared/Breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,30 +9,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { toast, useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import categoryStore from "@/store/categoryStore";
 import { CategoryResponse } from "@/types/category";
 import axiosInstance from "@/utils/axiosInstance";
 import getPaginationRange from "@/utils/getPaginationRange";
 import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
-import { data, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import moment from "moment";
+
 interface FormValues {
   name: string;
 }
@@ -240,7 +225,9 @@ const CategoryPage = () => {
                           {index + 1}
                         </th>
                         <td className="px-6 py-4">{category.name}</td>
-                        <td className="px-6 py-4">{category.created_at}</td>
+                        <td className="px-6 py-4">
+                          {moment(category.created_at).format("LLL")}
+                        </td>
                         <td className="px-6 py-4">
                           <Button className="bg-white hover:bg-white text-green-500 shadow-none">
                             Edit

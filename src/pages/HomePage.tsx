@@ -2,6 +2,7 @@ import categoryStore from "@/store/categoryStore";
 import itemStore from "@/store/itemStore";
 import React, { useEffect } from "react";
 import { Helmet } from "react-helmet";
+import moment from "moment";
 
 const HomePage = () => {
   const { categories, fetchCategory } = categoryStore();
@@ -92,7 +93,9 @@ const HomePage = () => {
                     return (
                       <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                         <td className="px-6 py-4">{c.name}</td>
-                        <td className="px-6 py-4">{c.created_at}</td>
+                        <td className="px-6 py-4">
+                          {moment(c.created_at).format("LLL")}
+                        </td>
                       </tr>
                     );
                   })}
@@ -127,7 +130,9 @@ const HomePage = () => {
                         <td className="px-6 py-4">{c.title}</td>
                         <td className="px-6 py-4">{c.description}</td>
                         <td className="px-6 py-4">{c.category.name}</td>
-                        <td className="px-6 py-4">{c.created_at}</td>
+                        <td className="px-6 py-4">
+                          {moment(c.created_at).format("LLL")}
+                        </td>
                       </tr>
                     );
                   })}

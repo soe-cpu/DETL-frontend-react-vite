@@ -9,14 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import categoryStore from "@/store/categoryStore";
 import itemStore from "@/store/itemStore";
@@ -26,6 +18,7 @@ import getPaginationRange from "@/utils/getPaginationRange";
 import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router-dom";
+import moment from "moment";
 interface FormValues {
   title: string;
   description: string;
@@ -318,7 +311,7 @@ const ItemPage = () => {
                         <td className="px-6 py-4">{item.title}</td>
                         <td className="px-6 py-4">{item.description}</td>
                         <td className="px-6 py-4">{item.category.name}</td>
-                        <td className="px-6 py-4">{item.created_at}</td>
+                        <td className="px-6 py-4">{moment(item.created_at).format('LLL')}</td>
                         <td className="px-6 py-4">
                           <Button className="bg-white hover:bg-white text-green-500 shadow-none">
                             Edit
